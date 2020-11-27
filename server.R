@@ -93,7 +93,6 @@ shinyServer(function(input, output, session) {
 
     output$topTab_1 <- renderDataTable({
         #print('Llegamos 1')
-        piv_year_1 <<-input$year_1
         n_top_1 = input$n_top_1
         #print('Llegamos 2')
         new_df = tab_sample()
@@ -108,17 +107,271 @@ shinyServer(function(input, output, session) {
         validate(need(nrow(la_new_df)>0, 'Please choose other configurations'))
         la_new_df
     })
+    
+    observe({
+        query = parseQueryString(session$clientData$url_search)
+        #print(typeof(query))
+        if(length(query)>0) query = tapply(unlist(query, use.names = FALSE), rep(names(query), lengths(query)), FUN = c)
+        #print(query)
+        top_t = query[["top_t"]]
+        n_top_1 = query[["n_top_1"]]
+        top_field = query[["top_field"]]
+        year = query[["year"]]
+        genre = query[["genre"]]
+        platform = query[["platform"]]
+        
+        
+        if(!is.null(top_t)){
+            top_t = as.character(top_t)
+            updateSelectInput(session,
+                              inputId = "top_t",
+                              selected  = top_t)
+        }
+        if(!is.null(n_top_1)){
+            n_top_1 = as.integer(n_top_1)
+            updateSliderInput(session,
+                              inputId = "n_top_1",
+                              value = n_top_1)
+        }
+        if(!is.null(top_field)){
+            top_field = as.character(top_field)
+            updateSelectInput(session,
+                              inputId = "top_field",
+                              selected = top_field)
+        }
+        #print(top_t)
+        if(!is.null(top_t)) {
+            if(top_t=="Platform") {
+                #print(year)
+                if(!is.null(year)){
+                    year = as.character(year)
+                    updateSelectInput(session,
+                                      inputId = "year_1",
+                                      selected = year)
+                }
+                #print(genre)
+                if(!is.null(genre)){
+                    genre = as.character(genre)
+                    updateSelectInput(session,
+                                      inputId = "genre_1",
+                                      selected = genre)
+                }
+            }
+            if(top_t=="Year") {
+                #print(genre)
+                if(!is.null(genre)){
+                    genre = as.character(genre)
+                    updateSelectInput(session,
+                                      inputId = "genre_2",
+                                      selected = genre)
+                }
+                if(!is.null(platform)){
+                    platform = as.character(platform)
+                    updateSelectInput(session,
+                                      inputId = "platform_2",
+                                      selected = platform)
+                }
+            }
+            if(top_t=="Genre") {
+                if(!is.null(year)){
+                    year = as.character(year)
+                    updateSelectInput(session,
+                                      inputId = "year_3",
+                                      selected = year)
+                }
+                if(!is.null(platform)){
+                    platform = as.character(platform)
+                    updateSelectInput(session,
+                                      inputId = "platform_3",
+                                      selected = platform)
+                }
+            }
+            if(top_t=="Publisher") {
+                if(!is.null(year)){
+                    year = as.character(year)
+                    updateSelectInput(session,
+                                      inputId = "year_4",
+                                      selected = year)
+                }
+                if(!is.null(genre)){
+                    genre = as.character(genre)
+                    updateSelectInput(session,
+                                      inputId = "genre_4",
+                                      selected = genre)
+                }
+                if(!is.null(platform)){
+                    platform = as.character(platform)
+                    updateSelectInput(session,
+                                      inputId = "platform_4",
+                                      selected = platform)
+                }
+            }
+            if(top_t=="Game") {
+                if(!is.null(year)){
+                    year = as.character(year)
+                    updateSelectInput(session,
+                                      inputId = "year_5",
+                                      selected = year)
+                }
+                if(!is.null(genre)){
+                    genre = as.character(genre)
+                    updateSelectInput(session,
+                                      inputId = "genre_5",
+                                      selected = genre)
+                }
+                if(!is.null(platform)){
+                    platform = as.character(platform)
+                    updateSelectInput(session,
+                                      inputId = "platform_5",
+                                      selected = platform)
+                }
+            }
+        }
+        
+    })
+    
+    observe({
+        top_t = input$top_t
+        n_top_1 = input$n_top_1
+        top_field = input$top_field
+        year_str = 'year=All&'
+        genre_str = 'genre=All&'
+        platform_str = 'platform=All'
+        #print(top_t)
+        if(top_t == 'Platform'){
+            #print("Entramos Platform")
+            #print(input$year_1)
+            if(!is.null(input$year_1)) {
+                year_str = ''
+                n_years = length(input$year_1)
+                for(year_i in 1:n_years) {
+                    year_str = paste0(year_str,"year=",input$year_1[year_i],"&")
+                }
+            }
+            #print(input$genre_1)
+            if(!is.null(input$genre_1)) {
+                genre_str = ''
+                n_genre = length(input$genre_1)
+                for(genre_i in 1:n_genre) {
+                    genre_str = paste0(genre_str,"genre=",input$genre_1[genre_i],"&")
+                }
+            }
+        }
+        if(top_t == 'Year'){
+            if(!is.null(input$platform_2)) {
+                platform_str = ''
+                n_platform = length(input$platform_2)
+                for(platform_i in 1:n_platform) {
+                    if(platform_i<n_platform) {
+                        platform_str = paste0(platform_str,"platform=",input$platform_2[platform_i],"&")
+                    }
+                    if(platform_i==n_platform){
+                        platform_str = paste0(platform_str,"platform=",input$platform_2[n_platform])
+                    }
+                }
+            }
+            if(!is.null(input$genre_2)) {
+                genre_str = ''
+                n_genre = length(input$genre_2)
+                for(genre_i in 1:n_genre) {
+                    genre_str = paste0(genre_str,"genre=",input$genre_2[genre_i],"&")
+                }
+            }
+        }
+        if(top_t == 'Genre'){
+            if(!is.null(input$platform_3)) {
+                platform_str = ''
+                n_platform = length(input$platform_3)
+                for(platform_i in 1:n_platform) {
+                    if(platform_i<n_platform) {
+                        platform_str = paste0(platform_str,"platform=",input$platform_3[platform_i],"&")
+                    }
+                    if(platform_i==n_platform){
+                        platform_str = paste0(platform_str,"platform=",input$platform_3[n_platform])
+                    }
+                }
+            }
+            if(!is.null(input$year_3)) {
+                year_str = ''
+                n_year = length(input$year_3)
+                for(year_i in 1:n_year) {
+                    year_str = paste0(year_str,"year=",input$year_3[year_i],"&")
+                }
+            }
+        }
+        if(top_t == 'Publisher'){
+            if(!is.null(input$platform_4)) {
+                platform_str = ''
+                n_platform = length(input$platform_4)
+                for(platform_i in 1:(n_platform-1)) {
+                    if(platform_i<n_platform) {
+                        platform_str = paste0(platform_str,"platform=",input$platform_4[platform_i],"&")
+                    }
+                    if(platform_i==n_platform) {
+                        platform_str = paste0(platform_str,"platform=",input$platform_4[n_platform])
+                    }
+                }
+            }
+            if(!is.null(input$year_4)) {
+                year_str = ''
+                n_year = length(input$year_4)
+                for(year_i in 1:n_year) {
+                    year_str = paste0(year_str,"year=",input$year_4[year_i],"&")
+                }
+            }
+            if(!is.null(input$genre_4)) {
+                genre_str = ''
+                n_genre = length(input$genre_4)
+                for(genre_i in 1:n_genre) {
+                    genre_str = paste0(genre_str,"genre=",input$genre_4[genre_i],"&")
+                }
+            }
+        }
+        if(top_t == 'Game'){
+            if(!is.null(input$platform_5)) {
+                platform_str = ''
+                n_platform = length(input$platform_5)
+                for(platform_i in 1:(n_platform-1)) {
+                    if(platform_i<n_platform) {
+                        platform_str = paste0(platform_str,"platform=",input$platform_5[platform_i],"&")
+                    }
+                    if(platform_i==n_platform) {
+                        platform_str = paste0(platform_str,"platform=",input$platform_5[n_platform])
+                    }
+                }
+            }
+            if(!is.null(input$year_5)) {
+                year_str = ''
+                n_year = length(input$year_5)
+                for(year_i in 1:n_year) {
+                    year_str = paste0(year_str,"year=",input$year_5[year_i],"&")
+                }
+            }
+            if(!is.null(input$genre_5)) {
+                genre_str = ''
+                n_genre = length(input$genre_5)
+                for(genre_i in 1:n_genre) {
+                    genre_str = paste0(genre_str,"genre=",input$genre_5[genre_i],"&")
+                }
+            }
+        }
+        link_url = paste0("http://",session$clientData$url_hostname,":",
+                          session$clientData$url_port,
+                          session$clientData$url_pathname,
+                          "?top_t=",top_t,"&",
+                          "n_top_1=",n_top_1, "&",
+                          "top_field=",top_field, "&",
+                          year_str,
+                          genre_str,
+                          platform_str)
+        updateTextInput(session,
+                        "url",
+                        value = link_url)
+        
+    })
 
 })
 
 
-#Test2 <- function(df,kk) {
-#    kk<-enquo(kk)
-#    xx1 <- group_by_at(mtcars,vars(mpg,cyl,!!kk)) %>% summarise(FreqOG = length(cyl))
-#    xx1 <- data.frame(xx1)}
-
-#yy1 <- Test2(mtcars,aaa1)
 
 
-#kk_tp<-enquo(aaa1)
-#df %>% arrange(!!kk_tp) %>% head()

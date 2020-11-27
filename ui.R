@@ -9,6 +9,10 @@
 
 library(shiny)
 library(DT)
+library(dplyr)
+
+df = read.csv('vgsales.csv',stringsAsFactors = F)
+colnames(df)[which(colnames(df)=='Name')] = 'Game'
 
 shinyUI(fluidPage(
     
@@ -31,6 +35,9 @@ shinyUI(fluidPage(
                                 'Top by:',
                                 choices = c('NA_Sales','EU_Sales','JP_Sales',"Other_Sales","Global_Sales","Amount"),
                                 selected = 'NA_Sales'),
+                    textAreaInput("url",
+                              "Link",
+                              value = ""),
                     tabsetPanel(id='params_1',
                                 type = 'hidden',
                                 tabPanel('Platform',
