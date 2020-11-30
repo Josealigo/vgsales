@@ -10,16 +10,20 @@
 library(shiny)
 library(DT)
 library(dplyr)
+library(ggplot2)
 
 df = read.csv('vgsales.csv',stringsAsFactors = F)
 colnames(df)[which(colnames(df)=='Name')] = 'Game'
 
 shinyUI(fluidPage(
     
-    titlePanel("Video Game Sales"),
+    titlePanel("Video Game Sales"
+               ),
+    h5("Jose Alberto Ligorria Taracena"),
+    h5("Juan Pablo Carranza Hurtado"),
     
     tabsetPanel(
-        tabPanel(
+        tabPanel("Tabular view",
             sidebarLayout(
                 sidebarPanel(
                     
@@ -125,10 +129,80 @@ shinyUI(fluidPage(
                     )
                 ),
                 mainPanel(
-                    dataTableOutput("topTab_1")
+                    dataTableOutput("topTab_1"),
+                    plotOutput("graph_1")
                 )
                 
                 
+            )
+
+        ),
+        tabPanel("Time series",
+            sidebarLayout(
+                sidebarPanel(
+                    selectInput('top_t_tab2',
+                                'Filter by:',
+                                choices = c('Platform','Genre',"Publisher","Game")),
+                    selectInput('top_field_tab2',
+                                'Top by:',
+                                choices = c('NA_Sales','EU_Sales','JP_Sales',"Other_Sales","Global_Sales","Amount"),
+                                selected = 'NA_Sales'),
+                    tabsetPanel(id='params_2',
+                                type = 'hidden',
+                                tabPanel('Platform',
+                                         selectInput('genre_1_tab2',
+                                                     'Genre',
+                                                     choices = c("All",df %>% select(Genre)  %>% distinct() %>% arrange(Genre)),
+                                                     multiple = TRUE,
+                                                     selected = "All"
+                                         )
+                                ),
+                                tabPanel('Genre',
+                                         selectInput('platform_1_tab2',
+                                                     'Platform',
+                                                     choices = c('All',df %>% select(Platform)  %>% distinct() %>% arrange(Platform)),
+                                                     multiple = TRUE,
+                                                     selected = "All"
+                                         )
+                                ),
+                                tabPanel('Publisher',
+                                         selectInput('platform_2_tab2',
+                                                     'Platform',
+                                                     choices = c("All",df %>% select(Platform)  %>% distinct() %>% arrange(Platform)),
+                                                     multiple = TRUE,
+                                                     selected = "All"
+                                         ),
+                                         selectInput('genre_2_tab2',
+                                                     'Genre',
+                                                     choices = c("All",df %>% select(Genre)  %>% distinct() %>% arrange(Genre)),
+                                                     multiple = TRUE,
+                                                     selected = "All"
+                                         )
+                                ),
+                                tabPanel('Game',
+                                         selectInput('platform_3_tab2',
+                                                     'Platform',
+                                                     choices = c("All",df %>% select(Platform)  %>% distinct() %>% arrange(Platform)),
+                                                     multiple = TRUE,
+                                                     selected = "All"
+                                         ),
+                                         selectInput('genre_3_tab2',
+                                                     'Genre',
+                                                     choices = c("All",df %>% select(Genre)  %>% distinct() %>% arrange(Genre)),
+                                                     multiple = TRUE,
+                                                     selected = "All"
+                                         )
+                                )
+                    )
+                ),
+                mainPanel(
+                    h4("Video game sales through time"),
+                    plotOutput("graph_2",
+                               click = 'clk',
+                               brush = 'mbrush'),
+                    dataTableOutput("DT_tabla1")
+                    
+                )
             )
         )
     ))

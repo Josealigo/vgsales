@@ -9,9 +9,16 @@
 
 library(DT)
 library(dplyr)
+library(ggplot2)
+library(rlang)
+
 
 df = read.csv('vgsales.csv',stringsAsFactors = F)
 colnames(df)[which(colnames(df)=='Name')] = 'Game'
+
+out_click <- NULL
+out_brush <- NULL
+out_df <- df
 
 library(shiny)
 
@@ -22,6 +29,12 @@ shinyServer(function(input, output, session) {
         updateTabsetPanel(session,
                           inputId = 'params_1',
                           selected = input$top_t)
+    })
+    
+    observeEvent(input$top_t_tab2,{
+        updateTabsetPanel(session,
+                          inputId = 'params_2',
+                          selected = input$top_t_tab2)
     })
     
     
@@ -90,6 +103,40 @@ shinyServer(function(input, output, session) {
         )
         #print('finaliza switch')
     })
+    
+    tab_sample_no_year  <- reactive({
+        filter_genre_1 = input$genre_1_tab2
+        filter_genre_2 = input$genre_2_tab2
+        filter_genre_3 = input$genre_3_tab2
+        
+        if(!is.null(input$genre_1_tab2)) {
+            if("All" %in% input$genre_1_tab2){filter_genre_1 = c(df %>% select(Genre)  %>% distinct() %>% arrange(Genre))[[1]]}}
+        if(!is.null(input$genre_2_tab2)) {
+            if("All" %in% input$genre_2_tab2){filter_genre_2 = c(df %>% select(Genre)  %>% distinct() %>% arrange(Genre))[[1]]}}
+        if(!is.null(input$genre_3_tab2)) {
+            if("All" %in% input$genre_3_tab2){filter_genre_3 = c(df %>% select(Genre)  %>% distinct() %>% arrange(Genre))[[1]]}}
+        #Pasamos filter para genre
+        
+        filter_plat_1 = input$platform_1_tab2
+        filter_plat_2 = input$platform_2_tab2
+        filter_plat_3 = input$platform_3_tab2
+        if(!is.null(input$platform_1_tab2)) {
+            if("All" %in% input$platform_1_tab2){filter_plat_1 = c(df %>% select(Platform)  %>% distinct() %>% arrange(Platform))[[1]]}}
+        if(!is.null(input$platform_2_tab2)) {
+            if("All" %in% input$platform_2_tab2){filter_plat_2 = c(df %>% select(Platform)  %>% distinct() %>% arrange(Platform))[[1]]}}
+        if(!is.null(input$platform_3_tab2)) {
+            if("All" %in% input$platform_3_tab2){filter_plat_3 = c(df %>% select(Platform)  %>% distinct() %>% arrange(Platform))[[1]]}}
+       # Pasamos platform filter
+        
+        switch(input$top_t_tab2,
+               'Platform' = df %>% filter(Genre %in% filter_genre_1) %>% group_by(Year) %>% summarise(NA_Sales = sum(NA_Sales),EU_Sales=sum(EU_Sales),JP_Sales=sum(JP_Sales),Other_Sales=sum(Other_Sales),Global_Sales=sum(Global_Sales),Amount = n()),
+               'Genre' = df %>% filter(Platform %in% filter_plat_1) %>% group_by(Year) %>% summarise(NA_Sales = sum(NA_Sales),EU_Sales=sum(EU_Sales),JP_Sales=sum(JP_Sales),Other_Sales=sum(Other_Sales),Global_Sales=sum(Global_Sales),Amount = n()),
+               'Publisher' = df %>% filter(Genre %in% filter_genre_2 & Platform %in% filter_plat_2) %>% group_by(Year) %>% summarise(NA_Sales = sum(NA_Sales),EU_Sales=sum(EU_Sales),JP_Sales=sum(JP_Sales),Other_Sales=sum(Other_Sales),Global_Sales=sum(Global_Sales),Amount = n()), 
+               'Game' = df %>% filter(Genre %in% filter_genre_3 & Platform %in% filter_plat_3) %>% group_by(Year) %>% summarise(NA_Sales = sum(NA_Sales),EU_Sales=sum(EU_Sales),JP_Sales=sum(JP_Sales),Other_Sales=sum(Other_Sales),Global_Sales=sum(Global_Sales),Amount = n()) 
+        )
+        #print('finaliza switch')   
+    })
+    
 
     output$topTab_1 <- renderDataTable({
         #print('Llegamos 1')
@@ -100,13 +147,94 @@ shinyServer(function(input, output, session) {
         #print(input$top_field)
         aaa1 <- input$top_field
         aaa2 <- input$top_t
-        kk_tp1<-enquo(aaa1)
-        kk_tp2<-enquo(aaa2)
-        la_new_df <-new_df %>% select(!!kk_tp2,!!kk_tp1)%>% arrange(!!kk_tp1) %>% top_n(n_top_1)
+        kk_tp1 <-enquo(aaa1)
+        kk_tp2 <-enquo(aaa2)
+        la_new_df <-new_df %>% select(!!kk_tp2,!!kk_tp1) %>% top_n(n_top_1) %>%arrange(desc(!!sym(aaa1)))
         #print('Llegamos 4')
         validate(need(nrow(la_new_df)>0, 'Please choose other configurations'))
         la_new_df
     })
+    
+    output$graph_1 <- renderPlot({
+        #print('Llegamos 1')
+        n_top_1 = input$n_top_1
+        #print('Llegamos 2')
+        new_df = tab_sample()
+        #print('Llegamos 3')
+        aaa1 <- input$top_field
+        aaa2 <- input$top_t
+        
+        eval_string = paste0('new_df %>% 
+                                arrange(',input$top_field,') %>%',
+                                'top_n(',n_top_1,') %>% 
+                                ggplot(aes(x = ',input$top_t ,',y = ', input$top_field, ')) + geom_bar(stat = "identity") + theme_bw()')        
+        
+        eval_graph = eval(parse_expr(eval_string))
+        
+        #validate(need(nrow(la_new_df)>0, 'Please choose other configurations'))
+        
+        eval_graph
+
+    })
+    
+     
+    output$graph_2 <- renderPlot({
+        
+        new_df = tab_sample_no_year()
+        
+        new_df$Year = as.numeric(new_df$Year)
+        
+        eval_string = paste0('new_df %>%
+                             ggplot(aes(x= Year, y =', input$top_field_tab2, ')) + geom_line() + geom_point() + xlab ("Year") + theme_bw()')
+        
+        eval_graph = eval(parse_expr(eval_string))
+        
+        eval_graph
+        
+        
+        
+    })
+    
+    
+    
+    puntos <- reactive({
+        new_df = tab_sample_no_year()
+        
+        new_df$Year = as.numeric(new_df$Year)
+        
+        aaa1 <- input$top_field_tab2
+        kk_tp1 <-enquo(aaa1)
+        
+        la_new_df <- new_df %>% select(Year,!!kk_tp1) %>% arrange(desc(!!sym(aaa1)))
+        
+        out_df <<- la_new_df %>% arrange(desc(Year))
+        
+        if(!is.null(input$clk$x)){
+            df_temp <- nearPoints(la_new_df, input$clk)
+            out_df <<- df_temp %>% arrange(desc(Year))
+        }
+        
+
+        if(!is.null(input$mbrush)){
+            df_temp <- brushedPoints(la_new_df, input$mbrush)
+            out_df <<- df_temp %>% arrange(desc(Year))
+        }
+
+        out_df
+    })
+    
+    click_table <- reactive({
+        input$clk
+        input$mbrush
+        puntos()
+    })
+    
+
+    output$DT_tabla1 <- renderDataTable({
+        
+        click_table() %>% datatable()
+    })
+    
     
     observe({
         query = parseQueryString(session$clientData$url_search)
@@ -303,7 +431,7 @@ shinyServer(function(input, output, session) {
             if(!is.null(input$platform_4)) {
                 platform_str = ''
                 n_platform = length(input$platform_4)
-                for(platform_i in 1:(n_platform-1)) {
+                for(platform_i in 1:(n_platform)) {
                     if(platform_i<n_platform) {
                         platform_str = paste0(platform_str,"platform=",input$platform_4[platform_i],"&")
                     }
@@ -331,7 +459,7 @@ shinyServer(function(input, output, session) {
             if(!is.null(input$platform_5)) {
                 platform_str = ''
                 n_platform = length(input$platform_5)
-                for(platform_i in 1:(n_platform-1)) {
+                for(platform_i in 1:(n_platform)) {
                     if(platform_i<n_platform) {
                         platform_str = paste0(platform_str,"platform=",input$platform_5[platform_i],"&")
                     }
